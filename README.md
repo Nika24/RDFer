@@ -2,6 +2,7 @@ RDFer
 =====
 
 XML to RDF .NET tool (XML, Turtle, N3, TRIG)
+Making use of dotNETRDF library: http://www.dotnetrdf.org/
 
 Usage
 -----
