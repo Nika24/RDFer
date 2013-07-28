@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!DOCTYPE jm_RDFer [
+<!ENTITY owl "http://www.w3.org/2002/07/owl#">
+<!ENTITY id "http://joshanmahmud.com/id/">
+<!ENTITY rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<!ENTITY rdfs "http://www.w3.org/2000/01/rdf-schema#">
+<!ENTITY dc "http://purl.org/dc/elements/1.1/">
+<!ENTITY dcterms "http://purl.org/dc/terms/">
+<!ENTITY foaf "http://xmlns.com/foaf/0.1/">
+]>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="configschema.xsd">
+	<namespaces>
+		<namespace prefix="owl" uri="http://www.w3.org/2002/07/owl#"></namespace>
+		<namespace prefix="rdf" uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#"></namespace>
+		<namespace prefix="rdfs" uri="http://www.w3.org/2000/01/rdf-schema#"></namespace>
+		<namespace prefix="crm" uri="http://erlangen-crm.org/current/"></namespace>
+		<namespace prefix="id" uri="http://joshanmahmud.com/id/"></namespace>
+		<namespace prefix="foaf" uri="http://xmlns.com/foaf/0.1/"></namespace>
+	</namespaces>
+
+	<mapping match="{/employees/employee}">
+		<resource>
+			<identifier prefix="http://joshanmahmud.com/id/" value="{@employeeId}"/>
+			<type value="http://xmlns.com/foaf/0.1/Person"/>
+			<triple predicate="rdfs:label" value="{name} {surname}"/>
+			<usenamedmapping name="websiteMapping"/>
+		</resource>
+	</mapping>
+
+	<mapping match="{/employees/contractor}">
+		<resource>
+			<identifier prefix="http://joshanmahmud.com/id/" value="{@contractorId}"/>
+			<type value="http://xmlns.com/foaf/0.1/Person"/>
+			<triple predicate="rdfs:label" value="{fullname}"/>
+			<usenamedmapping name="websiteMapping"/>
+		</resource>
+	</mapping>
+
+	<namedmapping name="websiteMapping">
+		<if match="{website[.!='']}">
+			<resource>
+				<if match="{@employeeId[.!='']}">
+					<identifier prefix="&id;" value="{@employeeId}/website"/>
+				</if>
+				<else>
+					<identifier prefix="&id;" value="{@contractorId}/website"/>
+				</else>
+
+				
+				<type value="&foaf;Document"/>
+				<triple predicate="rdfs:label" value="{website}"/>
+			</resource>
+			<triple predicate="foaf:homepage" prefix="&id;" object="{@employeeId}/website"/>
+		</if>
+
+		<usenamedmapping name="employeeCategoryMapping"/>
+	</namedmapping>
+
+	<namedmapping name="employeeCategoryMapping">
+		<switch>
+			<case match="{employeeCategory[.='A']}">
+				<triple predicate="id:employeeCategory" value="Category {employeeCategory}"/>				
+			</case>
+			<case match="{employeeCategory[.='B']}">
+				<triple predicate="id:employeeCategory" value="Category {employeeCategory} (Special Case)"/>				
+			</case>
+			<default>
+				<triple predicate="id:employeeCategory" value="Unknown"/>
+			</default>
+		</switch>
+	</namedmapping>
+</config>

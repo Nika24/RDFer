@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" xmlns:xsd="undefined">
+  <xs:element name="config">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="split" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="namespaces" minOccurs="0" maxOccurs="1"/>
+        <xs:element ref="mapping" minOccurs="0" maxOccurs="1"/>
+        <xs:element maxOccurs="unbounded" minOccurs="0" ref="namedmapping"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="split" nillable="true">
+    <xs:complexType>
+      <xs:attribute name="inputdirectoryname" use="required" type="xs:NCName"/>
+      <xs:attribute name="outputdirectoryname" use="required" type="xs:NCName"/>
+      <xs:attribute name="size" use="required" type="xs:integer"/>
+      <xs:attribute name="type" use="required" type="xs:NCName"/>
+	  <xs:attribute name="filesuffix" use="optional" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="namespaces" >
+    <xs:complexType>
+      <xs:choice>
+        <xs:element maxOccurs="unbounded" ref="namespace"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="namespace" nillable="true">
+    <xs:complexType>
+      <xs:attribute name="prefix" use="required" type="xs:NCName"/>
+      <xs:attribute name="uri" use="required" type="xs:anyURI"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="namedmapping">
+    <xs:complexType>
+		<xs:choice maxOccurs="unbounded">
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="triple"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="type"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="mapping"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="switch"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="resource"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="if"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="else"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="identifier"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="usenamedmapping"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="error"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="bnode"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="uniqueidentifier"/>
+	</xs:choice>
+      	<xs:attribute name="name" use="required" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="mapping">
+    <xs:complexType>
+		<xs:choice maxOccurs="unbounded">
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="triple"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="type"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="mapping"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="switch"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="resource"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="if"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="else"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="identifier"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="usenamedmapping"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="error"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="bnode"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="uniqueidentifier"/>
+	</xs:choice>
+      	<xs:attribute name="match" use="required"/>
+		<xs:attribute name="namedgraph" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="switch">
+    <xs:complexType>
+		<xs:sequence>
+        	<xs:element maxOccurs="unbounded" ref="case"/>
+        	<xs:element maxOccurs="1" minOccurs="0" ref="default"/>
+		</xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="case">
+    <xs:complexType>
+		<xs:choice maxOccurs="unbounded">
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="triple"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="type"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="mapping"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="switch"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="resource"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="if"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="else"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="identifier"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="usenamedmapping"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="error"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="bnode"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="uniqueidentifier"/>
+	</xs:choice>
+      <xs:attribute name="match" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="default">
+    <xs:complexType>
+		<xs:choice maxOccurs="unbounded">
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="triple"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="type"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="mapping"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="switch"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="resource"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="if"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="else"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="identifier"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="usenamedmapping"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="error"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="bnode"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="uniqueidentifier"/>
+	</xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="if">
+    <xs:complexType>
+		<xs:choice maxOccurs="unbounded">
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="triple"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="type"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="mapping"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="switch"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="resource"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="if"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="else"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="identifier"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="usenamedmapping"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="error"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="bnode"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="uniqueidentifier"/>
+	</xs:choice>
+        <xs:attribute name="match" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="else">
+    <xs:complexType>
+		<xs:choice maxOccurs="unbounded">
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="triple"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="type"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="mapping"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="switch"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="resource"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="if"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="else"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="identifier"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="usenamedmapping"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="error"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="bnode"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="uniqueidentifier"/>
+	</xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="triple">
+    <xs:complexType>
+        <xs:attribute name="predicate" use="required" type="xs:NMTOKEN"/>
+        <xs:attribute name="prefix" type="xs:anyURI"/>
+        <xs:attribute name="object"/>
+        <xs:attribute name="value"/>
+        <xs:attribute name="modifier" type="xs:NCName"/>
+		<xs:attribute name="type" type="xs:NCName"/>
+		<xs:attribute name="language" type="xs:NCName"/>      
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="resource">
+    <xs:complexType>
+		<xs:choice maxOccurs="unbounded">
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="counter"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="triple"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="type"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="mapping"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="switch"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="resource"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="if"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="else"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="identifier"/>
+         <xs:element minOccurs="0" maxOccurs="unbounded" ref="usenamedmapping"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="error"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="bnode"/>
+		 <xs:element minOccurs="0" maxOccurs="unbounded" ref="uniqueidentifier"/>
+	</xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="type" nillable="true">
+    <xs:complexType>
+      <xs:attribute name="value" use="required" type="xs:anyURI"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="counter" nillable="true">
+    <xs:complexType>
+      <xs:attribute name="name" use="required" type="xs:NCName"/>
+	  <xs:attribute name="initialValue" use="optional" type="xs:integer"/>
+	  <xs:attribute name="iterator" use="optional">
+	  	<xs:simpleType>
+			<xs:restriction base="xs:string">
+				 <xs:enumeration value="increment"/>
+    			 <xs:enumeration value="decrement"/>
+			</xs:restriction>
+		</xs:simpleType>
+	  </xs:attribute>
+	  <xs:attribute name="iterate" use="optional" type="xs:boolean"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="identifier" nillable="true">
+    <xs:complexType>
+        <xs:attribute name="prefix" use="required" type="xs:anyURI"/>
+        <xs:attribute name="value" use="required"/>
+        <xs:attribute name="modifier" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="usenamedmapping" nillable="true">
+    <xs:complexType>
+      <xs:attribute name="name" use="required" type="xs:NCName"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="error" nillable="true">
+    <xs:complexType>
+      <xs:attribute name="message" use="required" type="xs:string"/>
+	  <xs:attribute name="exit" use="optional" type="xs:boolean"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="bnode" nillable="true">
+    <xs:complexType>
+      <xs:attribute name="predicate" use="required" type="xs:NMTOKEN"/>
+	  <xs:attribute name="type" use="required" type="xs:anyURI"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="uniqueidentifier" nillable="true">
+    <xs:complexType>
+      <xs:attribute name="name" use="required" type="xs:NCName"/>	  	
+	  <xs:attribute name="generate" use="optional" type="xs:boolean"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

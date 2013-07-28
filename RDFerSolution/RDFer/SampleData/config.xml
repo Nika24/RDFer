@@ -1,0 +1,1465 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE seme4_makeRDF [
+  <!ENTITY id "http://rs.rkbexplorer.com/id/">
+  <!ENTITY bmx "http://rs.rkbexplorer.com/id/bm-extensions/">
+  <!ENTITY crm "http://crm.rkbexplorer.com/id/">
+  <!ENTITY foaf "http://xmlns.com/foaf/0.1/">
+]>
+
+<config>
+
+	<!--Split files into chunks
+	type=elementcount|filesize - informs the RDFer how to split the files 
+	size=the size of the files or number of elements to split by
+	 -->
+  <split type="elementcount" size="3" inputdirectoryname="inputchunks" outputdirectoryname="outputchunks" />
+
+	<!--The namespaces to be delivered in the output RDF file-->
+  <namespaces>
+  	<namespace prefix="owl" uri="http://www.w3.org/2002/07/owl#" />
+	<namespace prefix="rdf" uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#" />
+	<namespace prefix="rdfs" uri="http://www.w3.org/2000/01/rdf-schema#" />
+	<namespace prefix="dc" uri="http://purl.org/dc/elements/1.1/" />
+	<namespace prefix="bmx" uri="http://crm.rkbexplorer.com/id/bm-extensions/" />
+	<namespace prefix="id" uri="http://rs.rkbexplorer.com/id/" />
+	<namespace prefix="crm" uri="http://crm.rkbexplorer.com/id/" />
+	<namespace prefix="foaf" uri="http://xmlns.com/foaf/0.1/" />
+	<namespace prefix="skos" uri="http://www.w3.org/2004/02/skos/core#" />
+	<namespace prefix="xsd" uri="http://www.w3.org/2001/XMLSchema#" />
+  </namespaces>
+
+
+  <!-- basic details of the object -->
+  <mapping match="{//bm_object}">
+    <resource>
+      <identifier prefix="&id;object/" value="{bm_prn}" />
+      <type value="&crm;E22.Man-Made_Object" />
+      <triple predicate="bmx:codex_id" value="{bm_codex_object_id/_}" />
+      <triple predicate="bmx:reg_id" value="{bm_calc_reg_no_expr/_}" />
+      <triple predicate="bmx:big_id" value="{bm_calc_big_no_expr/_}" />
+      <triple predicate="bmx:cm_cat_id" value="{bm_calc_cm_cat_no_expr/_}" />
+      <triple predicate="bmx:gr_cat_id" value="{bm_calc_gr_catno/_}" />
+      <mapping match="{mus_alias_other_number/_}">
+        <triple predicate="bmx:other_id" value="{.}" />
+      </mapping>
+      <triple predicate="owl:sameAs" object="&id;codex/{bm_codex_object_id/_}" />
+      <triple predicate="crm:P50F.has_current_keeper" prefix="&id;department/" object="{bm_owning_department}" />
+      <triple predicate="bmx:PX.has_copyright" value="{bm_copyright_ind}" />
+      <triple predicate="crm:P57F.has_number_of_parts" value="{mus_number_of_objects}" />
+
+      <!-- object name is actually more like the type of object, eg cup, vase, tablet -->
+      <mapping match="{bm_alias_object_name/_}">
+        <triple predicate="crm:P2F.has_type" prefix="&id;thesauri/" object="{mus_object_name_th_i}" />
+        <triple predicate="crm:P3F.has_note" value="Object type :: {mus_object_name} :: {bm_object_name_note}" />
+      </mapping>
+
+      <!-- curatorial comments -->
+      <mapping match="{mus_alias_comments/_}">
+        <triple predicate="bmx:PX.curatorial_comment" value="{mus_comments}" />
+      </mapping>
+
+      <!-- exhibition history -->
+      <mapping match="{bm_exhib_hist/_}">
+        <triple predicate="bmx:PX.exhibition_history" value="{.}" />
+      </mapping>
+
+      <!-- acquisition year -->
+      <mapping match="{bm_alias_acq_year/_}">
+        <resource>
+          <identifier value="&id;object/{../../bm_prn}/acquisition" />
+          <type value="&crm;E8.Acquisition" />
+          <date text="{bm_acq_year_text}" earliest="{bm_acq_year_earliest}" latest="{bm_acq_year_latest}" comment="{bm_acq_year_com}" />
+          <triple predicate="crm:P3F.has_note" value="Acquisition date :: {bm_acq_year_text} :: {bm_acq_year_com}" />
+        </resource>
+        <triple predicate="crm:P3F.has_note" value="Acquisition date :: {bm_acq_year_text} :: {bm_acq_year_com}" />
+      </mapping>
+
+      <!-- acquisition: transfer of custody, or ownership? -->
+      <switch>
+        <case match="{bm_object_part/_/bm_alias_xml_acq_name/_/bm_acq_name_ass[.='L']}">
+          <!-- the object has been loaned, or some other such arrangement -->
+          <triple predicate="crm:P30B.custody_transferred_through" object="&id;object/{bm_prn}/acquisition" />
+          <resource>
+            <identifier value="&id;object/{bm_prn}/acquisition" />
+            <type value="&crm;E10.Transfer_of_Custody" />
+            <triple predicate="crm:P30F.transferred_custody_of" object="&id;object/{bm_prn}" />
+            <triple predicate="crm:P29F.custody_received_by" object="&id;the-british-museum" />
+           </resource>
+           <triple predicate="crm:P3F.has_note" value="Acquisition :: Received custody :: {bm_object/_/mus_acquisition_note}" />
+        </case>
+        <case match="{bm_object_part/_/bm_alias_xml_acq_name/_/bm_acq_name_ass[.='OB']}">
+          <!-- object owned and kept by some external organisation -->
+          <triple predicate="crm:P49F.has_former_or_current_keeper" prefix="&id;person-institution/" object="{bm_object_part/_/bm_alias_xml_acq_name/_/mus_authority-bm_auth_biog_number}" /> 
+          <triple predicate="crm:P3F.has_note" value="Owned by :: {bm_acq_name} :: {bm_acq_name_com}" />
+        </case>
+        <default>
+          <!-- the object is now owned by the BM -->
+          <triple predicate="crm:P24B.changed_ownership_through" object="&id;object/{bm_prn}/acquisition" />
+          <triple predicate="crm:P52F.has_current_owner" object="&id;the-british-museum" />
+          <resource>
+            <identifier value="&id;object/{bm_prn}/acquisition" />
+            <type value="&crm;E8.Acquisition" />
+            <triple predicate="crm:P24F.transferred_title_of" object="&id;object/{bm_prn}" />
+            <triple predicate="crm:P22F.transferred_title_to" object="&id;the-british-museum" />
+            <triple predicate="crm:P30F.transferred_custody_of" object="&id;object/{bm_prn}" />
+            <triple predicate="crm:P29F.custody_received_by" object="&id;the-british-museum" />
+            <triple predicate="crm:P3F.has_note" value="Acquisition :: Received title :: {bm_object/_/mus_acquisition_note}" />
+          </resource>
+        </default>
+      </switch>
+
+      <!-- parts of this object. if mus_obj_parts is empty, then the "part" refers to the whole,
+           so in this case foo/{mus_obj_parts}/bar becomes foo/bar in the output, ie the part vanishes
+           and we effectively attribute properties/values to the whole object.
+           we just then have to be careful whether we output "is_composed_of" or "forms_part_of" only
+           for real parts that do have an identifier.  -->
+      <mapping match="{bm_object_part/_}">
+
+	<!-- only include is_composed_of if we're describing a real sub-part -->
+        <if match="{mus_obj_parts[.!='']}">
+          <triple predicate="crm:P46F.is_composed_of" prefix="&id;object/" object="{../../bm_prn}/{mus_obj_parts}" />
+        </if>
+
+        <!-- this resource is either a valid sub-part, or is the same resource as the whole object -->
+        <resource>
+          <identifier prefix="&id;object/" value="{../../bm_prn}/{mus_obj_parts}" />
+
+          <!-- if a real sub-part, associate with parent object -->
+          <if match="{mus_obj_parts[.!='']}">
+            <type value="&crm;E24.Physical_Man-Made_Thing" />
+            <triple predicate="crm:P46B.forms_part_of" object="&id;object/{../../bm_prn}" />
+          </if>
+
+          <triple predicate="bmx:PX.physical_description" value="{mus_physical_description}" />
+
+          <!-- ware -->
+          <mapping match="{bm_alias_ware/_}">
+            <triple predicate="bmx:PX.ware" prefix="&id;thesauri/" object="{bm_ware_th_i}" />
+            <triple predicate="crm:P3F.has_note" value="Ware :: {bm_ware} :: {bm_ware_com}" />
+          </mapping>
+        
+          <!-- dimension(s) -->
+          <mapping match="{mus_alias_dimension/_}">
+            <bnode predicate="crm:P43F.has_dimension" type="crm:E54.Dimension">
+              <triple predicate="crm:P2F.has_type" object="&id;dimension/{mus_dimension}" />
+              <triple predicate="crm:P91F.has_unit" object="&id;units/{mus_dimension_measurement_unit}" />
+              <triple predicate="bmx:PX.min_value" value="{mus_dimension_value}" />
+              <triple predicate="bmx:PX.max_value" value="{bm_dimension_value_end}" />
+              <triple predicate="crm:P3F.has_note" value="Dimension :: :: {mus_dimension_notes}" />
+              <switch>
+                <case match="{bm_dimension_value_end[.!='']}">
+                  <!-- min and max value -->
+                  <triple predicate="rdfs:label" value="{mus_dimension} = {mus_dimension_value} - {bm_dimension_value_end} {mus_dimension_measurement_unit}" />
+                </case>
+                <default>
+                  <!-- just min value -->
+                  <triple predicate="rdfs:label" value="{mus_dimension} = {mus_dimension_value} {mus_dimension_measurement_unit}" />
+                </default>
+              </switch>
+            </bnode>
+          </mapping>
+
+          <!-- production date of this part -->
+          <mapping match="{mus_alias_object_production_date/_}">
+            <triple predicate="crm:P108B.was_produced_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+            <resource>
+              <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+              <type value="&crm;E12.Production" />
+              <triple predicate="crm:P108F.has_produced" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}" />
+              <triple predicate="crm:P3F.has_note" value="Production date :: {mus_object_production_date_text} :: {bm_object_production_date_note}" />
+              <date text    ="{mus_object_production_date_text}" 
+                    earliest="{mus_object_production_date_earliest}" 
+                    latest  ="{mus_object_production_date_latest}" 
+                    comment ="Production date :: {mus_object_production_date_text} :: {bm_object_production_date_note}" />
+            </resource>
+          </mapping>
+
+          <!-- techniques used in production of this part -->
+          <mapping match="{mus_alias_technique/_}">
+            <triple predicate="crm:P108B.was_produced_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+             <resource>
+              <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+              <type value="&crm;E12.Production" />
+              <triple predicate="crm:P108F.has_produced" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}" />
+              <triple predicate="crm:P32F.used_general_technique" prefix="&id;thesauri/" object="{mus_technique_th_i}" />
+              <triple predicate="crm:P3F.has_note" value="Uses technique :: {mus_technique} :: {bm_technique_note}" />
+            </resource>
+          </mapping>
+
+          <!-- materials used in production of this part -->
+          <mapping match="{mus_alias_material/_}">
+            <triple predicate="crm:P45F.consists_of" prefix="&id;thesauri/" object="{mus_material_th_i}" />
+            <triple predicate="crm:P3F.has_note" value="Consists of :: {mus_material} :: {bm_material_note}" />
+          </mapping>
+
+          <!--  place of production (this actual individual object) -->
+          <mapping match="{mus_alias_object_production_place/_}">
+            <triple predicate="crm:P108B.was_produced_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+            <resource>
+              <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+              <type value="&crm;E12.Production" />
+              <triple predicate="crm:P108F.has_produced" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}" />
+              <triple predicate="crm:P3F.has_note" value="Production place site :: {bm_object_production_place_site} ::" />
+              <switch>
+                <case match="{mus_object_production_place_association[.='A']}">
+                  <triple predicate="bmx:PX.attributed_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Attributed at :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='CF']}">
+                  <triple predicate="bmx:PX.claimed_to_be_from" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Claimed to be from :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='E']}">
+                  <type value="&crm;E11.Modification" />
+                  <triple predicate="bmx:PX.engraved_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Engraved in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='F']}">
+                  <triple predicate="bmx:PX.factory_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Factory in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='L']}">
+                  <type value="&crm;E11.Modification" />
+                  <triple predicate="bmx:PX.lustred_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Lustred in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='M']}">
+                  <triple predicate="bmx:PX.made_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Made in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='MB']}">
+                  <triple predicate="bmx:PX.bell_made_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Bell made in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='MC']}">
+                  <triple predicate="bmx:PX.case_made_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Case made in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='MD']}">
+                  <triple predicate="bmx:PX.dial_made_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Dial made in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='ME']}">
+                  <triple predicate="bmx:PX.ebauche_made_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Ebauche made in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='MI']}">
+                  <triple predicate="bmx:PX.minted_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Minted in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='MM']}">
+                  <triple predicate="bmx:PX.movement_made_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Movement made in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='MP']}">
+                  <triple predicate="bmx:PX.watch_pendant_made_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Watch pendant made in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='MQ']}">
+                  <triple predicate="bmx:PX.dust_cap_made_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Dust-cap made in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='P']}">
+                  <type value="&crm;E11.Modification" />
+                  <triple predicate="bmx:PX.painted_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Painted in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='PH']}">
+                  <triple predicate="bmx:PX.photographed_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Photographed in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='R']}">
+                  <triple predicate="bmx:PX.printed_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Printed in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='W']}">
+                  <triple predicate="bmx:PX.workshop_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Workshop in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+                <case match="{mus_object_production_place_association[.='Z']}">
+                  <triple predicate="bmx:PX.published_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Published in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </case>
+              </switch>
+            </resource>
+          </mapping>
+
+          <!-- things which influence the prodution of the *type* of an object, not the individual object itself -->
+          <mapping match="{mus_alias_object_production_place/_}">
+            <switch>
+              <case match="{mus_object_production_place_association[.='D']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.designed_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Designed in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Designed in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+              </case>
+              <case match="{mus_object_production_place_association[.='I']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.issued_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Issued in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Issued in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+              </case>
+            </switch>
+          </mapping>
+
+          <!-- modifications, which aren't production event -->
+          <mapping match="{mus_alias_object_production_place/_}">
+            <switch>
+              <case match="{mus_object_production_place_association[.='O']}">
+                <triple predicate="crm:P31B.was_modified_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/overpainted" />
+                <resource>
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/overpainted" />
+                  <type value="&crm;E11.Modification" />
+                  <triple predicate="crm:P31F.has_modified" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}" />
+                  <triple predicate="bmx:PX.overpainted_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Overpainted in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Overpainted in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+              </case>
+              <case match="{mus_object_production_place_association[.='DE']}">
+                <triple predicate="crm:P31B.was_modified_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/decorated" />
+                <resource>
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/decorated" />
+                  <type value="&crm;E11.Modification" />
+                  <triple predicate="crm:P31F.has_modified" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}" />
+                  <triple predicate="bmx:PX.decorated_in" prefix="&id;thesauri/" object="{mus_object_production_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Decorated in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Decorated in :: {mus_object_production_place} :: {mus_object_production_place_note}" />
+              </case>
+            </switch>
+          </mapping>
+
+          <!-- bibliographic items associated with this object -->
+          <mapping match="{bm_alias_bib_xref/_}">
+            <triple predicate="crm:P67B.is_referred_to_by" prefix="&id;bibliography/" object="{bm_bib_xref_id}" />
+            <triple predicate="crm:P3F.has_note" value="Bibliograpic reference :: {bm_bib_xref} {bm_bib_spec} :: {bm_bib_com}" />
+         </mapping>
+
+
+          <!-- people/orgs associated with the creation of this conceptual type of object -->
+          <mapping match="{bm_alias_xml_object_production_person/_}">
+            <switch>
+
+              <!-- author -->
+              <case match="{mus_object_production_person_association[.='AU']|mus_object_production_person_association[.='WR']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.author" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Authored by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Authored by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+              </case>
+
+              <!-- block cut by --> 
+              <case match="{mus_object_production_person_association[.='BC']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.block_cut_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Block cut by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Block cut by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+              </case>
+
+              <!-- calligrapher -->
+              <case match="{mus_object_production_person_association[.='CA']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.calligrapher" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Calligrapher :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Calligrapher :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+              </case>
+
+              <!-- designed by, or designed and made by -->
+              <case match="{mus_object_production_person_association[.='D']|mus_object_production_person_association[.='DM']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.designed_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Designed by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Designed by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+              </case>
+
+              <!-- modelled by -->
+              <case match="{mus_object_production_person_association[.='J']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.modelled_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Modelled by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Modelled by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+              </case>
+
+              <!-- print made by -->
+              <case match="{mus_object_production_person_association[.='PM']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.print_made_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Print made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Print made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+              </case>
+
+              <!-- original artist -->
+              <case match="{mus_object_production_person_association[.='OA']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.original_artist" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Original artist/designer :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Original artist/designer :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+              </case>
+
+              <!-- print artist -->
+              <case match="{mus_object_production_person_association[.='PA']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.print_artist" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Print artist :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Print artist :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+              </case>
+
+              <!-- published by -->
+              <case match="{mus_object_production_person_association[.='Z']}">
+                <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+                  <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                </resource>
+                <resource>
+                  <type value="&crm;E65.Creation" />
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+                  <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+                  <triple predicate="bmx:PX.published_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Published by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Published by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+              </case>
+            </switch>
+          </mapping>
+        
+
+          <!-- people/orgs associated with production of object (this individual object) -->
+          <mapping match="{bm_alias_xml_object_production_person/_}">
+            <triple predicate="crm:P108B.was_produced_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+            <resource>
+              <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+              <type value="&crm;E12.Production" />
+              <triple predicate="crm:P108F.has_produced" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}" />
+              <switch>
+                <case match="{mus_object_production_person_association[.='A']}">
+                  <triple predicate="bmx:PX.attributed_to" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Attributed to :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AA']}">
+                  <bnode predicate="bmx:PX.attributed_to" type="crm:E39.Actor">
+                    <!-- anonymous person/organisation -->
+                    <triple predicate="bmx:PX.pupil_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                    <triple predicate="crm:P3F.has_note" value="Pupil of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                  </bnode>
+                </case>
+                <case match="{mus_object_production_person_association[.='AB']}">
+                  <triple predicate="bmx:PX.ascribed_to" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Ascribed to :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AC']}">
+                  <triple predicate="bmx:PX.attributed_to_circle_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Attributed to the circle of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AD']}">
+                  <triple predicate="bmx:PX.attributed_to" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Attributed to :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AE']}">
+                  <triple predicate="bmx:PX.formerly_attributed_to" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Fomerly attributed to :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AF']}">
+                  <bnode predicate="bmx:PX.attributed_to" type="crm:E39.Actor">
+                    <!-- anonymous person/organisation -->
+                    <triple predicate="bmx:PX.follower_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                    <triple predicate="crm:P3F.has_note" value="Follower of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                  </bnode>
+                </case>
+                <case match="{mus_object_production_person_association[.='AG']}">
+                  <bnode predicate="crm:P14F.carried_out_by" type="crm:E39.Actor">
+                    <!-- anonymous person/organisation -->
+                    <triple predicate="bmx:PX.studio_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                    <triple predicate="crm:P3F.has_note" value="Office or studio of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                  </bnode>
+                  <triple predicate="crm:P3F.has_note" value="Office or studio of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AI']}">
+                  <bnode predicate="bmx:PX.attributed_to" type="crm:E39.Actor">
+                    <!-- anonymous person/organisation -->
+                    <triple predicate="bmx:PX.imitator_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                    <triple predicate="crm:P3F.has_note" value="Imitator of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                  </bnode>
+                </case>
+                <case match="{mus_object_production_person_association[.='AJ']}">
+                  <triple predicate="bmx:PX.circle_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="School/circle of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AL']}">
+                  <triple predicate="bmx:PX.manner_style_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Manner/style of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AM']}">
+                  <triple predicate="bmx:PX.manner_style_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Manner/style of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AT']}">
+                  <triple predicate="bmx:PX.manner_style_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Manner/style of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='AW']}">
+                  <triple predicate="bmx:PX.attributed_workshop_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Attributed to the workshop of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='C']}">
+                  <triple predicate="bmx:PX.close_to" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Close to :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='CB']}">
+                  <triple predicate="bmx:PX.claimed_to_be_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Claimed to by by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='CF']}">
+                  <triple predicate="bmx:PX.compare_with" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Compare with :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='CM']}">
+                  <triple predicate="bmx:PX.connected_manner_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Connected with the manner of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='CW']}">
+                  <triple predicate="bmx:PX.connected_with" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Connected with :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='DE']}">
+                  <triple predicate="bmx:PX.decorated_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Decorated by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='E']}">
+                  <triple predicate="bmx:PX.engraved_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Engraved by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='F']}">
+                  <triple predicate="bmx:PX.factory_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Factory of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='G']}">
+                  <triple predicate="bmx:PX.moneyer" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Moneyer :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='I']}">
+                    <triple predicate="bmx:PX.issuer" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                    <triple predicate="crm:P3F.has_note" value="Issued by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='ID']}">
+                  <triple predicate="bmx:PX.intermediary_draughtsman" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Intermediary Draughtsman :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='L']}">
+                  <triple predicate="bmx:PX.lustred_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Lustred by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='LE']}">
+                  <triple predicate="bmx:PX.lettering_engraved_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Lettering engraved by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <!-- made by, or designed and made by -->
+                <case match="{mus_object_production_person_association[.='M']|mus_object_production_person_association[.='DM']}">
+                  <triple predicate="bmx:PX.made_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='MB']}">
+                  <triple predicate="bmx:PX.bell_made_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Bell made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='MC']}">
+                  <triple predicate="bmx:PX.case_made_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Case made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='MD']}">
+                  <triple predicate="bmx:PX.dial_made_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Dial made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='ME']}">
+                  <triple predicate="bmx:PX.ebauche_made_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Ebauche made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='MI']}">
+                  <triple predicate="bmx:PX.minted_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Minted in :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='MM']}">
+                  <triple predicate="bmx:PX.movement_made_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Movement made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='MP']}">
+                  <triple predicate="bmx:PX.watch_pendant_made_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Watch pendant made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='MQ']}">
+                  <triple predicate="bmx:PX.dust_cap_made_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Dust-cap made by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='N']}">
+                  <bnode predicate="crm:P14F.carried_out_by" type="crm:E39.Actor">
+                    <!-- anonymous person/organisation -->
+                    <triple predicate="bmx:PX.pupil_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                    <triple predicate="crm:P3F.has_note" value="Pupil of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                  </bnode>
+                  <triple predicate="crm:P3F.has_note" value="Pupil of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='NE']}">
+                  <triple predicate="bmx:PX.near" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Near :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='O']}">
+                  <triple predicate="bmx:PX.official_office_dept" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Official/Office/Dept :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='P']}">
+                  <triple predicate="bmx:PX.painted_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Painted by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='PH']}">
+                  <triple predicate="crm:P2F.has_type" object="&id;production/photography" />
+                  <triple predicate="crm:P14F.carried_out_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Photographed by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='R']}">
+                  <triple predicate="bmx:PX.printed_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Printed by :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='RC']}">
+                  <triple predicate="bmx:PX.recalls" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Recalls :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='RE']}">
+                  <triple predicate="bmx:PX.is_related_to" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Related to :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='S']}">
+                  <triple predicate="bmx:PX.manner_style_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="School/style of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='SC']}">
+                  <triple predicate="bmx:PX.scribe" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Scribe :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='T']}">
+                  <triple predicate="bmx:PX.mint" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Mint :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='W']}">
+                  <triple predicate="bmx:PX.workshop" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Workshop of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+                <case match="{mus_object_production_person_association[.='X']}">
+                  <triple predicate="bmx:PX.manner_style_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="School/style of :: {mus_object_production_person} :: {bm_object_production_person_note}" />
+                </case>
+              </switch>
+            </resource>
+          </mapping>
+
+          <!-- special cases for objects that have been bought/retailed -->
+          <mapping match="{mus_alias_object_production_place/_/mus_object_production_place_association[.='RT']}">
+            <resource>
+              <identifier value="&id;object/{../../../../../bm_prn}/acquisition" />
+              <type value="&crm;E8.Acquisition" />
+              <triple predicate="bmx:PX.retailed_in" prefix="&id;thesauri/" object="{../mus_object_production_place_th_i}" />
+              <triple predicate="crm:P3F.has_note" value="Retailed in :: {../mus_object_production_place} :: {../mus_object_production_place_note}" />
+            </resource>
+          </mapping>
+          <mapping match="{bm_alias_xml_object_production_person/_/mus_object_production_person_association[.='RT']}">
+            <resource>
+              <identifier value="&id;object/{../../../../../bm_prn}/acquisition" />
+              <type value="&crm;E8.Acquisition" />
+              <triple predicate="bmx:PX.originally_retailed_by" prefix="&id;person-institution/" object="{../mus_authority-bm_auth_biog_number}" />
+              <triple predicate="crm:P3F.has_note" value="Originally retailed by :: {../mus_object_production_person} :: {../bm_object_production_person_note}" />
+            </resource>
+          </mapping>
+
+          <!-- special case of object production person for inscriptions -->
+          <mapping match="{bm_alias_xml_object_production_person/_/mus_object_production_person_association[.='IR']}">
+            <triple predicate="crm:P128F.carries" object="&id;object/{../../../../../bm_prn}/{../../../mus_obj_parts}/inscription" />
+            <triple predicate="crm:P3F.has_note" value="Carries an inscription which was created by :: {../mus_object_production_person} :: {../bm_object_production_person_note}" />
+            <resource>
+              <identifier value="&id;object/{../../../../../bm_prn}/{../../../mus_obj_parts}/inscription" />
+              <type value="&crm;E34.Inscription" />
+              <triple predicate="crm:P3F.has_note" value="Created by :: {../mus_object_production_person} :: {../bm_object_production_person_note}" />
+              <triple predicate="crm:P108B.was_produced_by" object="&id;object/{../../../../../bm_prn}/{../../../mus_obj_parts}/inscription/production" />
+              <resource>
+                <identifier value="&id;object/{../../../../../bm_prn}/{../../../mus_obj_parts}/inscription/production" />
+                <type value="&crm;E12.Production" />
+                <triple predicate="crm:P108F.has_produced" object="&id;object/{../../../../../bm_prn}/{../../../mus_obj_parts}/inscription" />
+                <triple predicate="crm:P14F.carried_out_by" prefix="&id;person-institution/" object="{../mus_authority-bm_auth_biog_number}" />
+              </resource>
+            </resource>
+          </mapping>
+
+          <!-- details of inscription(s). Some inscriptions are multi-part, whereas if mus_inscription_position is
+               empty then those details refer to the inscription as a whole (such as in the case of objects/parts) -->
+          <mapping match="{mus_alias_inscription/_}">
+            <triple predicate="crm:P128F.carries" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+            <resource>
+              <type value="&crm;E34.Inscription" />
+              <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+              <if match="{mus_inscription_position[.!='']}">
+                <triple predicate="crm:P46F.is_composed_of" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/inscription/{mus_inscription_position}" />
+              </if>
+            </resource>
+            <resource>
+              <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription/{mus_inscription_position}" />
+              <if  match="{mus_inscription_position[.!='']}">
+                <type value="&crm;E34.Inscription" /> <!-- ? -->
+                <triple predicate="crm:P46B.forms_part_of" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription/" />
+              </if>
+              <triple predicate="crm:P2F.has_type" prefix="&id;inscription/type/" object="{mus_inscription_type}" />
+              <triple predicate="bmx:PX.inscription_content" value="{mus_inscription_content}" />
+
+              <!-- if we have a non-empty inscripton language -->
+              <if match="{mus_inscription_language[.!='']}">
+                <triple predicate="crm:P72F.has_language" prefix="&id;script/language/" object="{mus_inscription_language}" modifier="strToLower" />
+                <resource>
+                  <type value="&crm;E56.Language" />
+                  <identifier prefix="&id;script/language/" value="{mus_inscription_language}" modifier="strToLower" />
+                  <triple predicate="rdfs:label" value="{mus_inscription_language}" />
+                </resource>
+              </if>
+
+              <!-- if we have a non-empty script type -->
+              <if match="{mus_inscription_script[.!='']}">
+                <triple predicate="bmx:PX.inscription_script" prefix="&id;script/type/" object="{mus_inscription_script}" modifier="strToLower" />
+                <resource>
+                  <type value="&crm;E55.Type" />
+                  <identifier prefix="&id;script/type/" value="{mus_inscription_script}" modifier="strToLower" />
+                  <triple predicate="rdfs:label" value="{mus_inscription_script}" />
+                </resource>
+              </if>
+
+              <!--  do we have a translation? -->
+              <if match="{mus_inscription_translation[.!='']}">
+                <triple predicate="crm:P73F.has_translation" prefix="&id;translation/" object="{../../../../bm_prn}{mus_inscription_translation}" modifier="md5" />
+                <resource>
+                  <type value="&crm;E33.Linguistic_Object" />
+                  <identifier prefix="&id;translation/" value="{../../../../bm_prn}{mus_inscription_translation}" modifier="md5" />
+                  <triple predicate="bmx:PX.has_content" value="{mus_inscription_translation}" />
+                </resource>
+              </if>
+
+              <triple predicate="bmx:PX.has_transliteration" value="{mus_inscription_transliteration}" />
+              <triple predicate="crm:P3F.has_note" value="Inscription note :: :: {bm_inscription_note}" />
+            </resource>
+          </mapping>
+
+          <!-- production authority -->
+          <mapping match="{bm_alias_authority/_}">
+            <triple predicate="crm:P2F.has_type" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+            <resource>
+              <type value="&crm;E55.Type" />
+              <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type" />
+              <triple predicate="crm:P94B.was_created_by" object="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+            </resource>
+            <resource>
+              <type value="&crm;E65.Creation" />
+              <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/type/creation" />
+              <triple predicate="crm:P94F.has_created" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/type" /> 
+              <switch>
+                <case match="{bm_authority_ass[.='E']}">
+                  <triple predicate="bmx:PX.eponym" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Eponym :: {bm_authority} :: {bm_authority_com}" />
+                </case>
+                <case match="{bm_authority_ass[.='G']}">
+                  <triple predicate="bmx:PX.governor" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Governor :: {bm_authority} :: {bm_authority_com}" />
+                </case>
+                <case match="{bm_authority_ass[.='I']}">
+                  <triple predicate="bmx:PX.issuer" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Issuer :: {bm_authority} :: {bm_authority_com}" />
+                </case>
+                <case match="{bm_authority_ass[.='K']}">
+                  <triple predicate="bmx:PX.ruler" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Ruler :: {bm_authority} :: {bm_authority_com}" />
+                </case>
+                <case match="{bm_authority_ass[.='M']}">
+                  <triple predicate="bmx:PX.moneyer" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Moneyer :: {bm_authority} :: {bm_authority_com}" />
+                </case>
+                <case match="{bm_authority_ass[.='Y']}">
+                  <triple predicate="bmx:PX.magistrate" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Magistrate :: {bm_authority} :: {bm_authority_com}" />
+                </case>
+              </switch>
+              <triple predicate="bmx:PX.has_regnal_date" value="Regnal date :: {bm_regnal_year}/{bm_regnal_month}/{bm_regnal_day} :: {bm_regnal_com}" /> 
+            </resource>
+          </mapping>
+
+          <!-- ethnic group -->
+          <mapping match="{bm_alias_eth_name/_}">
+            <switch>
+              <case match="{bm_eth_name_ass[.='M']}">
+                <!-- the object/part was made by the given ethnic group -->
+                <triple predicate="crm:P108B.was_produced_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                <resource>
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                  <type value="&crm;E12.Production" />
+                  <triple predicate="bmx:PX.made_by_ethnic_group" prefix="&id;thesauri/" object="{bm_eth_name_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Made by ethnic group :: {bm_eth_name} :: {bm_eth_com}" />
+                </resource>
+              </case>
+              <case match="{bm_eth_name_ass[.='AW']}">
+                <!-- object/part is associated with the given ethnic group -->
+                <triple predicate="bmx:PX.is_related_to" prefix="&id;thesauri/" object="{bm_eth_name_th_i}" />
+                <triple predicate="crm:P3F.has_note" value="Is related to ethnic group :: {bm_eth_name} :: {bm_eth_com}" />
+              </case>
+              <case match="{bm_eth_name_ass[.='IR']}">
+                <!-- object/part is a representation of the given ethnic group -->
+                <triple predicate="crm:P62F.depicts" prefix="&id;thesauri/" object="{bm_eth_name_th_i}" />
+                <triple predicate="crm:P3F.has_note" value="Depicts ethnic group :: {bm_eth_name} :: {bm_eth_com}" />
+              </case>
+            </switch>
+          </mapping>
+
+          <!-- school -->
+          <mapping match="{bm_alias_school/_}">
+            <resource>
+              <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+              <type value="&crm;E12.Production" />
+              <triple predicate="bmx:PX.school_of" prefix="&id;thesauri/" object="{bm_school_th_i}" />
+              <triple predicate="crm:P3F.has_note" value="School of :: {bm_school} :: {bm_school_com}" />
+            </resource>
+          </mapping>
+
+          <!-- state (political) -->
+          <!-- bm_state is a controlled list, so can use as basis for identifier -->
+          <mapping match="{bm_alias_state/_}">
+            <resource>
+              <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+              <type value="&crm;E12.Production" />
+              <triple predicate="bmx:PX.produced_in_state" prefix="&id;political-state/" object="{bm_state}" modifier="strToLower" />
+              <triple predicate="crm:P3F.has_note" value="Produced in state :: {bm_state} :: {bm_state_com}" />
+            </resource>
+          </mapping>
+
+          <!-- if a painting etc, the object can have a subject (eg animals, snowman) -->
+          <mapping match="{bm_alias_subject/_}">
+            <triple predicate="crm:P129F.is_about" prefix="&id;thesauri/" object="{bm_subject_th_i}" />
+            <triple predicate="crm:P3F.has_note" value="Subject :: {bm_subject} :: {bm_subject_com}" />
+          </mapping>
+
+          <!-- objects can be part of a series -->
+          <mapping match="{bm_alias_type_ser/_}">
+            <triple predicate="bmx:PX.type_series" prefix="&id;series-type/" object="{bm_type_ser}" modifier="md5" />
+            <resource>
+              <identifier prefix="&id;series-type/" value="{bm_type_ser}" modifier="md5" />
+              <type value="&crm;E55.type" />
+              <triple predicate="rdfs:label" value="{bm_type_ser}" />
+            </resource>
+            <triple predicate="crm:P3F.has_note" value="Type series :: {bm_type_ser} :: {bm_type_ser_com}" />
+          </mapping>
+
+          <!-- object_associated_place -->
+	  <mapping match="{bm_alias_as_place/_}">
+            <switch>
+              <case match="{bm_as_place_ass[.='AW']}">
+                <triple predicate="bmx:PX.is_related_to" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                <triple predicate="crm:P3F.has_note" value="Is related to place :: {bm_as_place} :: {bm_as_place_com}" />
+              </case>
+              <case match="{bm_as_place_ass[.='EE']}">
+                <triple predicate="bmx:PX.is_emblem_of" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                <triple predicate="crm:P3F.has_note" value="Is emblem of place :: {bm_as_place} :: {bm_as_place_com}" />
+              </case>
+              <case match="{bm_as_place_ass[.='IT']}">
+                <triple predicate="bmx:PX.topographical_depiction_of" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                <triple predicate="crm:P3F.has_note" value="Is topographic representation of place :: {bm_as_place} :: {bm_as_place_com}" />
+              </case>
+              <case match="{bm_as_place_ass[.='MF']}">
+                <triple predicate="crm:P108B.was_produced_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                <resource>
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                  <type value="&crm;E12.Production" />
+                  <triple predicate="bmx:PX.made_for" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Made for place :: {bm_as_place} :: {bm_as_place_com}" />
+                </resource>
+              </case>
+              <case match="{bm_as_place_ass[.='NI']}">
+                <!-- object carries an inscription, which names this place -->
+                <triple predicate="crm:P128F.carries" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                <resource>
+                  <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                  <type value="&crm;E34.Inscription" />
+                  <triple predicate="crm:P67F.refers_to" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Names place :: {bm_as_place} :: {bm_as_place_com}" />
+                </resource>
+                <triple predicate="crm:P3F.has_note" value="Carries an inscription which names place :: {bm_as_place} :: {bm_as_place_com}" />
+              </case>
+              <case match="{bm_as_place_ass[.='NS']}">
+                <!-- the production used some raw material which came from the given place -->
+                <triple predicate="crm:P108B.was_produced_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                <resource>
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                  <type value="&crm;E12.Production" />
+                  <bnode predicate="crm:P16F.used_specific_object" type="crm:E19.Physical_Object">
+                    <triple predicate="crm:P53F.has_former_or_current_location" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                    <triple predicate="crm:P3F.has_note" value="Originally from place :: {bm_as_place} :: {bm_as_place_com}" />
+                  </bnode>
+                  <triple predicate="crm:P3F.has_note" value="Produced using material from place :: {bm_as_place} :: {bm_as_place_com}" />
+                </resource>
+              </case>
+              <case match="{bm_as_place_ass[.='OF']}">
+                <!-- this is a copy, the original is from... -->
+                <triple predicate="crm:P3F.has_note" value="Original from place :: {bm_as_place} :: {bm_as_place_com}" />
+                <bnode predicate="bmx:PX.is_copy_of" type="crm:E24.Physical_Man-Made_Thing">
+                  <triple predicate="bmx:PX.has_copy" prefix="&id;object/" object="{../../../../bm_prn}" />
+                  <triple predicate="crm:P53F.has_former_or_current_location" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                  <triple predicate="crm:P3F.has_note" value="Originally from place :: {bm_as_place} :: {bm_as_place_com}" />
+                </bnode>
+              </case>
+              <case match="{bm_as_place_ass[.='RP']}">
+                <triple predicate="bmx:PX.was_repaired_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/repair" />
+                <triple predicate="crm:P3F.has_note" value="Repaired in place :: {bm_as_place} :: {bm_as_place_com}" />
+                <resource>
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/repair" />
+                  <type value="&bmx;EX.Repair" />
+                  <triple predicate="bmx:PX.repaired" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}" />
+                  <triple predicate="crm:P7F.took_place_at" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                </resource>
+              </case>
+              <case match="{bm_as_place_ass[.='UN']}">
+                <!-- unspecified?! -->
+                <triple predicate="bmx:PX.is_related_to" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                <triple predicate="crm:P3F.has_note" value="Is related to place :: {bm_as_place} :: {bm_as_place_com}" />
+              </case>
+              <case match="{bm_as_place_ass[.='UT']}">
+                <!-- some activity took place at <place> and used this specific object -->
+                <triple predicate="crm:P3F.has_note" value="Was used in an activity which took place at :: {bm_as_place} :: {bm_as_place_com}" />
+                <resource>
+                  <type value="&crm;E7.Activity" /> <!-- this is an anonymous activity -->
+                  <triple predicate="crm:P7F.took_place_at" prefix="&id;thesauri/" object="{bm_as_place_th_i}" />
+                  <triple predicate="crm:P16F.used_specific_object" prefix="&id;object/" object="{../../../../bm_prn}" />
+                </resource> 
+              </case>
+            </switch>
+            <triple predicate="crm:P3F.has_note" value="Site detail :: {bm_as_place} :: {bm_as_place_site}" />
+          </mapping>
+
+          <!-- object associated name -->
+	  <mapping match="{bm_alias_xml_as_name/_}">
+            <switch>
+              <case match="{bm_as_name_ass[.='AB']}">
+                <triple predicate="bmx:PX.illustration_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                <triple predicate="crm:P3F.has_note" value="Illustration of :: {bm_as_name} :: {bm_as_name_com}" />
+              </case>
+              <case match="{bm_as_name_ass[.='EE']}">
+                <triple predicate="bmx:PX.is_emblem_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                <triple predicate="crm:P3F.has_note" value="Emblem of :: {bm_as_name} :: {bm_as_name_com}" />
+              </case>
+              <case match="{bm_as_name_ass[.='F']}">
+                <resource>
+                  <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                  <type value="&crm;E12.Production" />
+                  <triple predicate="bmx:PX.made_for" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Made for :: {bm_as_name} :: {bm_as_name_com}" />
+                </resource>
+              </case>
+              <case match="{bm_as_name_ass[.='II']}">
+                <triple predicate="crm:P128F.carries" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                <resource>
+                  <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                  <type value="&crm;E34.Inscription" />
+                  <triple predicate="crm:P67F.refers_to" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Refers to :: {bm_as_name} :: {bm_as_name_com}" />
+                </resource>
+                <triple predicate="crm:P62F.depicts" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+              </case>
+              <case match="{bm_as_name_ass[.='IP']}">
+                <triple predicate="bmx:PX.portrait_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                <triple predicate="crm:P3F.has_note" value="Portrait of :: {bm_as_name} :: {bm_as_name_com}" />
+              </case>
+              <case match="{bm_as_name_ass[.='IR']}">
+                <triple predicate="bmx:PX.representation_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                <triple predicate="crm:P3F.has_note" value="Representation of :: {bm_as_name} :: {bm_as_name_com}" />
+              </case>
+              <case match="{bm_as_name_ass[.='PI']}">
+                <triple predicate="crm:P128F.carries" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                <resource>
+                  <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                  <type value="&crm;E34.Inscription" />
+                  <triple predicate="crm:P67F.refers_to" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Refers to :: {bm_as_name} :: {bm_as_name_com}" />
+                </resource>
+              </case>
+              <case match="{bm_as_name_ass[.='PO']}">
+                <triple predicate="bmx:PX.associated_with" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                <triple predicate="crm:P3F.has_note" value="Associated with :: {bm_as_name} :: {bm_as_name_com}" />
+              </case>
+              <case match="{bm_as_name_ass[.='PP']}">
+                <triple predicate="crm:P108B.was_produced_by" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                <resource>
+                  <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                  <type value="&crm;E12.Production" />
+                  <triple predicate="bmx:PX.produced_under_authority_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Produced under authority of :: {bm_as_name} :: {bm_as_name_com}" />
+                </resource>
+              </case>
+              <case match="{bm_as_name_ass[.='RP']}">
+                <triple predicate="bmx:PX.was_repaired_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/repair" />
+                <resource>
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/repair" />
+                  <type value="&bmx;EX.Repair" />
+                  <triple predicate="bmx:PX.repaired" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}" />
+                  <triple predicate="crm:P14F.carried_out_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Carried out by :: {bm_as_name} :: {bm_as_name_com}" />
+                </resource>
+              </case>
+            </switch>
+          </mapping>
+
+          <!-- object associated event -->
+          <!-- we have assumed here that event names are unique in the thesauri,
+               and generate the URI for an event based on the name -->
+	  <mapping match="{bm_alias_as_event/_}">
+            <resource>
+              <type value="&crm;E5.Event" />
+              <identifier prefix="&id;event/" value="{bm_as_event}" modifier="md5" />
+              <triple predicate="rdfs:label" value="{bm_as_event}" />
+              <date text="{bm_as_event_date_text}" earliest="{bm_as_event_date_earliest}" latest="{bm_as_event_date_latest}" comment="{bm_as_event_date_com}" />
+            </resource> 
+            <switch>
+              <case match="{bm_as_name_ass[.='DF']}">
+                <resource>
+                  <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                  <type value="&crm;E12.Production" />
+                  <triple predicate="bmx:PX.designed_for" prefix="&id;event/" object="{bm_as_event}" modifier="md5" />
+                  <triple predicate="crm:P3F.has_note" value="Designed for event :: {bm_as_event} :: {bm_as_event_com}" />
+                </resource>
+              </case>
+              <case match="{bm_as_name_ass[.='IC']}">
+                <triple predicate="crm:P108B.was_produced_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                <resource>
+                  <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/production" />
+                  <type value="&crm;E12.Production" />
+                  <triple predicate="crm:P108F.has_produced" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}" />
+                  <triple predicate="bmx:PX.in_commemoration_of" prefix="&id;event/" object="{bm_as_event}" modifier="md5" />
+                  <triple predicate="crm:P3F.has_note" value="In commemoration of :: {bm_as_event} :: {bm_as_event_com}" />
+                </resource>
+              </case>
+              <case match="{bm_as_name_ass[.='IU']}">
+                <triple predicate="crm:P16B.was_used_for" prefix="&id;event/" object="{bm_as_event}" modifier="md5" />
+                <triple predicate="crm:P3F.has_note" value="Was used for event :: {bm_as_event} :: {bm_as_event_com}" />
+              </case>
+              <case match="{bm_as_name_ass[.='IW']}">
+                <triple predicate="bmx:PX.associated_event" prefix="&id;event/" object="{bm_as_event}" modifier="md5" />
+                <triple predicate="crm:P3F.has_note" value="Associated event :: {bm_as_event} :: {bm_as_event_com}" />
+              </case>
+              <case match="{bm_as_name_ass[.='PI']}">
+                <triple predicate="crm:P128F.carries" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                <resource>
+                  <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                  <type value="&crm;E34.Inscription" />
+                  <triple predicate="crm:P67F.refers_to" prefix="&id;event/" object="{bm_as_event}" modifier="md5" />
+                  <triple predicate="crm:P3F.has_note" value="Refers to event :: {bm_as_event} :: {bm_as_event_com}" />
+                </resource>
+              </case>
+              <case match="{bm_as_name_ass[.='UN']}">
+                <triple predicate="bmx:PX.associated_event" prefix="&id;event/" object="{bm_as_event}" modifier="md5" />
+                <triple predicate="crm:P3F.has_note" value="Associated event :: {bm_as_event} :: {bm_as_event_com}" />
+              </case>
+            </switch>
+          </mapping>
+
+          <!-- object acquisition association -->
+          <mapping match="{bm_alias_xml_acq_name/_}">
+            <resource>
+              <identifier prefix="&id;object/" value="{../../../../bm_prn}/{../../mus_obj_parts}/acquisition" />
+              <switch>
+                <case match="{bm_acq_name_ass[.='A']}">
+                  <type value="&crm;E8.Acquisition" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/purchase" />
+                  <triple predicate="crm:P22F.transferred_title_to" object="&id;the-british-museum" />
+                  <triple predicate="bmx:PX.purchased_through" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Purchased through :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='B']}">
+                  <type value="&crm;E8.Acquisition" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/bequeathal" />
+                  <triple predicate="crm:P22F.transferred_title_to" object="&id;the-british-museum" />
+                  <triple predicate="bmx:PX.bequeathed_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Bequeathed by :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='BT']}">
+                  <type value="&crm;E8.Acquisition" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/bequeathal" />
+                  <triple predicate="crm:P22F.transferred_title_to" object="&id;the-british-museum" />
+                  <triple predicate="bmx:PX.bequeathed_through" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Bequeathed through :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='C']}">
+                  <triple predicate="bmx:PX.collected_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="Collected by :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='CF']}">
+                  <triple predicate="bmx:PX.with_contribution_from" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" />
+                  <triple predicate="crm:P3F.has_note" value="With contribution from :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='D']}">
+                  <type value="&crm;E8.Acquisition" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/donation" />
+                  <triple predicate="crm:P22F.transferred_title_to" object="&id;the-british-museum" />
+                  <triple predicate="bmx:PX.donated_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P28F.custody_surrendered_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Donated by :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='DA']}">
+                  <triple predicate="bmx:PX.division_of_finds_with" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Division of finds with :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='E']}">
+                  <type value="&crm;E8.Acquisition" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/exchange" />
+                  <triple predicate="crm:P28F.custody_surrendered_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P29F.custody_received_by" object="&id;the-british-museum" />
+                  <triple predicate="crm:P3F.has_note" value="Exchanged with :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='EC']}">
+                  <triple predicate="bmx:PX.exchanged_through" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Exchanged through :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='EX']}">
+                  <triple predicate="bmx:PX.was_discovered_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/discovery" />
+                  <resource>
+                    <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/discovery" />
+                    <type value="&bmx;EX.Discovery" />
+                    <triple predicate="crm:P11F.had_participant" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  </resource>
+                  <triple predicate="crm:P3F.has_note" value="Excavated by :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='F']}">
+                  <triple predicate="crm:P28F.custody_surrendered_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="From :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='FU']}">
+                  <triple predicate="bmx:PX.funded_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Funded by :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='IH']}">
+                  <triple predicate="bmx:PX.in_honour_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="In honour of :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='IM']}">
+                  <triple predicate="bmx:PX.in_memory_of" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="In memory of :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='L']}">
+                  <type value="&crm;E10.Transfer_of_Custody" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/loan" />
+                  <triple predicate="bmx:PX.on_loan_from" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P29F.custody_received_by" object="&id;the-british-museum" />
+                  <triple predicate="crm:P3F.has_note" value="On load from :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='P']}">
+                  <type value="&crm;E8.Acquisition" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/purchase" />
+                  <triple predicate="crm:P22F.transferred_title_to" object="&id;the-british-museum" />
+                  <triple predicate="bmx:PX.purchased_from" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Purchased from :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='PO']}">
+                  <triple predicate="crm:P49F.has_former_or_current_keeper" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Previous owner/collection: :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='S']}">
+                  <triple predicate="bmx:PX.sponsored_by" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Sponsored by :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='T']}">
+                  <triple predicate="bmx:PX.transferred_from" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P29F.custody_received_by" object="&id;the-british-museum" />
+                  <triple predicate="crm:P22F.transferred_title_to" object="&id;the-british-museum" />
+                  <triple predicate="crm:P3F.has_note" value="Transferred from :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='TR']}">
+                  <!-- is there a "from" person/org? -->
+                  <type value="&crm;E8.Acquisition" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/purchase-treasure-1996" />
+                  <triple predicate="crm:P22F.transferred_title_to" object="&id;the-british-museum" />
+                  <triple predicate="bmx:PX.purchased_from_through_treasure_act" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Purchased from :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='TT']}">
+                  <!-- is there a "from" person/org? -->
+                  <type value="&crm;E8.Acquisition" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/treasure-trove" />
+                  <triple predicate="crm:P22F.transferred_title_to" object="&id;the-british-museum" />
+                  <triple predicate="bmx:PX.treasure_trove_from" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Treasure trove from :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='UI']}">
+                  <type value="&crm;E10.Transfer_of_Custody" />
+                  <triple predicate="crm:P2F.has_type" object="&id;acquisition/handed-in-not-reclaimed" />
+                  <triple predicate="crm:P29F.custody_received_by" object="&id;the-british-museum" />
+                  <triple predicate="crm:P3F.has_note" value="Acquisition :: Unclaimed item :: {bm_acq_name_com}" />
+                </case>
+                <case match="{bm_acq_name_ass[.='V']}">
+                  <triple predicate="bmx:PX.donated_through" prefix="&id;person-institution/" object="{mus_authority-bm_auth_biog_number}" /> 
+                  <triple predicate="crm:P3F.has_note" value="Donated through :: {bm_acq_name} :: {bm_acq_name_com}" />
+                </case>
+              </switch>
+            </resource>
+          </mapping>
+
+          <!-- find spots -->
+          <mapping match="{mus_alias_field_collection_place/_}">
+            <triple predicate="bmx:PX.was_discovered_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/discovery" />
+            <resource>
+              <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/discovery" />
+              <type value="&bmx;EX.Discovery" />
+              <triple predicate="crm:P7F.took_place_at" prefix="&id;thesauri/" object="{mus_field_collection_place_th_i}" />
+              <triple predicate="crm:P3F.has_note" value="Excavated at :: {mus_field_collection_place} :: {mus_field_collection_place_note}" />
+              <triple predicate="crm:P3F.has_note" value="Site detail :: {mus_field_collection_place} :: {bm_field_collection_place_site}" />
+              <switch>
+                <case match="{mus_field_collection_place_association[.='E']}">
+                  <triple predicate="crm:P2F.has_type" object="&id;discovery/excavation" />
+                </case>
+                <case match="{mus_field_collection_place_association[.='F']}">
+                  <triple predicate="crm:P2F.has_type" object="&id;discovery/find" />
+                </case>
+              </switch>
+            </resource>
+          </mapping>
+          <mapping match="{mus_alias_stratigraphic_unit/_}">
+            <triple predicate="bmx:PX.was_discovered_by" prefix="&id;object/" object="{../../../../bm_prn}/{../../mus_obj_parts}/discovery" />
+            <resource>
+              <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/discovery" />
+              <type value="&bmx;EX.Discovery" />
+              <triple predicate="crm:P3F.has_note" value="Stratigraphic note :: :: {mus_stratigraphic_unit_note}" />
+            </resource>
+          </mapping>
+
+          <!-- associated title is very wooly. if TI then relates to an inscription -->
+          <mapping match="{bm_alias_as_title/_}">
+            <switch>
+              <case match="{bm_as_title_ass[.='TI']}">
+                <!-- title associated with an inscription -->
+                <triple predicate="crm:P128F.carries" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                <triple predicate="crm:P3F.has_note" value="Associated inscription :: {bm_as_title} :: {bm_as_title_com}" />
+                <resource>
+                  <identifier value="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}/inscription" />
+                  <type value="&crm;E34.Inscription" />
+                  <bnode predicate="bmx:PX.is_related_to" type="crm:E1.CRM_Entity">
+                    <triple predicate="rdfs:label" value="{bm_as_title}" />
+                  </bnode>
+                </resource>
+              </case>
+              <default>
+                <!-- general associated title with the object part -->
+                <triple predicate="crm:P3F.has_note" value="Associated title :: {bm_as_title} :: {bm_as_title_com}" />
+                <bnode predicate="bmx:PX.is_related_to" type="crm:E1.CRM_Entity">
+                  <triple predicate="rdfs:label" value="{bm_as_title}" />
+                </bnode>
+              </default>
+            </switch>
+          </mapping>
+
+          <!-- title for either the object or the series to which the object belongs -->
+          <mapping match="{mus_alias_title/_}">
+            <switch>
+              <case match="{mus_title_type[.='Series']}">
+                <triple predicate="crm:P148B.is_component_of" prefix="&id;series/" object="{mus_title}" modifier="md5" />
+                <triple predicate="crm:P3F.has_note" value="Component of series :: {mus_title} ::" />
+                <resource>
+                  <type value="&bmx;EX.Series" />
+                  <identifier prefix="&id;series/" value="{mus_title}" modifier="md5" />
+                  <triple predicate="crm:P148F.has_component" prefix="&id;object/" object="{../../../../bm_prn}" />
+                  <triple predicate="crm:P102F.has_title" prefix="&id;title/" object="{mus_title}" modifier="md5" />
+                  <resource>
+                    <type value="&crm;E35.Title" />
+                    <identifier prefix="&id;title/" value="{mus_title}" modifier="md5" />
+                    <triple predicate="rdfs:label" value="{mus_title}" />
+                    <triple predicate="crm:P3F.has_note" value="Title translation :: {mus_title_translation} ::" />
+                  </resource>
+                </resource>
+              </case>
+              <case match="{mus_title_type[.='Object']}">
+                <triple predicate="crm:P102F.has_title" prefix="&id;title/" object="{mus_title}" modifier="md5" />
+                <resource>
+                  <type value="&crm;E35.Title" />
+                  <identifier prefix="&id;title/" value="{mus_title}" modifier="md5" />
+                  <triple predicate="rdfs:label" value="{mus_title}" />
+                  <triple predicate="crm:P3F.has_note" value="Title translation :: {mus_title_translation} ::" />
+                </resource>
+              </case>
+            </switch>
+          </mapping>
+
+          <!-- Labels are the little labels that go next to an object when on display in a collection. -->
+          <!-- We model the exhibition as an activity. bm_label_exhib_name is a controlled list -->
+          <mapping match="{mus_alias_label/_}">
+ 
+            <resource>
+              <type value="&bmx;Exhibition" />
+              <identifier prefix="&id;exhibition/" value="{bm_label_exhib_name}" modifier="strToLower" />
+              <triple predicate="rdfs:label" value="{bm_label_exhib_name}" />
+              <triple predicate="crm:P3F.has_note" value="{bm_label_com}" />
+              <triple predicate="bmx:PX.exhibits" prefix="&id;exhibition/" object="{bm_label_exhib_name}/objects" modifier="strToLower" />
+              <resource>
+                <type value="&bmx;Aggregation" />
+                <identifier prefix="&id;exhibition/" value="{bm_label_exhib_name}/objects" modifier="strToLower" />
+                <triple predicate="crm:P46F.is_composed_of" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}" />
+              </resource>
+            </resource>
+            <triple predicate="crm:P3F.has_note" value="Appeared in exhibition :: {bm_label_exhib_name} :: {bm_label_com}" />
+            <triple predicate="bmx:PX.object_exhibition_label" value="Exhibition label :: {bm_label_exhib_name} :: {mus_label_text}" />
+          </mapping>
+
+          <!-- condition. only one entry per object part -->
+          <mapping match="{mus_alias_condition}">
+            <triple predicate="bmx:PX.condition" value="{mus_condition_note}" />
+          </mapping>
+
+          <!-- collections: an object may be in an aggregation of objects -->
+          <!-- bm_coll_name is a controlled list, so we can use it as basis for identifier -->
+          <mapping match="{bm_alias_coll_name/_}">
+            <triple predicate="crm:P46B.forms_part_of" prefix="&id;aggregation/" object="{bm_coll_name}" modifier="md5" />
+            <resource>
+              <type value="&bmx;EX.Aggregation" />
+              <identifier prefix="&id;aggregation/" value="{bm_coll_name}" modifier="md5" />
+              <triple predicate="crm:P46F.is_composed_of" object="&id;object/{../../../../bm_prn}/{../../mus_obj_parts}"/>
+              <triple predicate="rdfs:label" value="{bm_coll_name}" />
+            </resource> 
+          </mapping>
+
+          <!-- if a coin or bank note, may have a currency/denomination/serial_number -->
+          <!-- bm_denomination is a controlled list, so we can use it as basis for identifier -->
+          <mapping match="{bm_alias_denomination/_}">
+            <triple predicate="bmx:PX.currency" prefix="&id;currency/" object="{bm_denomination}" modifier="extractCurrency" />
+            <triple predicate="bmx:PX.denomination" value="{bm_denomination}" modifier="extractDenomination" />
+            <triple predicate="crm:P3F.has_note" value="Demomination :: {bm_denomination} :: {bm_denomination_com}" />
+          </mapping>
+          <mapping match="{bm_alias_serial/_}">
+            <triple predicate="crm:P3F.has_note" value="Serial number :: {bm_serial} :: {bm_serial_com}" />
+          </mapping>
+
+          <!-- location of an object. only expose if avail=G  -->
+          <mapping match="{bm_alias_loc/_/bm_loc_avail[.='G']}">
+            <triple predicate="crm:P53F.has_former_or_current_location" prefix="&id;location/" object="{../bm_loc}" />
+            <triple predicate="crm:P3F.has_note" value="Located in gallery :: {../bm_loc} :: {../bm_loc_date} {../bm_loc_com}" />
+            <resource>
+              <type value="&crm;E53.Place" />
+              <identifier prefix="&id;location/" value="{../bm_loc}" />
+              <triple predicate="rdfs:label" value="The British Museum: Gallery {../bm_loc}" />
+            </resource> 
+          </mapping>
+
+        </resource> <!-- end of part of an object -->
+      </mapping>
+
+      <!-- if there is a reference to the escapement thesauri, then infer that we have a part which is an escapement -->
+      <mapping match="{bm_object_part/_/bm_alias_escapement/_}">
+        <triple predicate="crm:P46F.is_composed_of" prefix="&id;object/" object="{../../../../bm_prn}/escapement" />
+        <resource>
+          <identifier prefix="&id;object/" value="{../../../../bm_prn}/escapement" /> 
+          <type value="&crm;E24.Physical_Man-Made_Thing" />
+          <triple predicate="crm:P46B.forms_part_of" prefix="&id;object/" object="{../../../../bm_prn}" />
+          <triple predicate="crm:P2F.has_type" object="&id;thesauri/{bm_escapement_th_i}" />     
+          <triple predicate="crm:P3F.has_note" value="Escapement :: {bm_escapement} :: {bm_escapement_com}" />
+        </resource>
+      </mapping>
+
+    </resource> <!-- end of object -->
+  </mapping>
+
+</config>

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<employees>
+	<employee employeeId="12345">
+		<name>Joshan</name>
+		<surname>Mahmud</surname>
+		<website>http://www.joshamahmud.com/12345</website>
+		<employeeCategory>A</employeeCategory>
+		<dateJoined>2011-01-01</dateJoined>
+	</employee>
+	<employee employeeId="12346">
+		<name>John</name>
+		<surname>Smith</surname>
+		<website>http://www.joshamahmud.com/12346</website>
+		<dateJoined>2012-02-01</dateJoined>
+	</employee>
+	<contractor contractorId="9999	">
+		<fullname>Mr John Tavener</fullname>
+		<website>http://www.contractors.com</website>
+		<employeeCategory>B</employeeCategory>
+		<dateJoined>2013-01-01</dateJoined>
+	</contractor>
+</employees>
