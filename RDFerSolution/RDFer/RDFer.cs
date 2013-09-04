@@ -410,6 +410,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
 
                 //get xpath without the closing {} 
                 var match = RemoveClosingBrackets(mapping.Attributes["match"].Value);
+                match = MatchNestedInternalFunctionCalls(match);
 
                 //execute xpath on data
                 var nodeList = data.SelectNodes(match, _namespaceManager);
@@ -514,7 +515,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                     throw new Exception("Error in config: Missing match=\"...\" attribute in <if>\n\n");
 
                 var match = RemoveClosingBrackets(ifNode.Attributes["match"].Value);
-
+                match = MatchNestedInternalFunctionCalls(match);
 
                 XPathNavigator nav = data.CreateNavigator();
                 XPathExpression expr = nav.Compile(RemoveClosingBrackets(match));
@@ -594,6 +595,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                 if (switchNode.Attributes["match"] != null)
                 {
                     var match = RemoveClosingBrackets(switchNode.Attributes["match"].Value);
+                    match = MatchNestedInternalFunctionCalls(match);
                     switchValues = data.SelectNodes(match, _namespaceManager);
                 }
 
@@ -608,6 +610,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                     if (caseNode.Attributes["match"] != null)
                     {
                         var match = RemoveClosingBrackets(caseNode.Attributes["match"].Value);
+                        match = MatchNestedInternalFunctionCalls(match);
 
                         //  if that match attribute is satisfied...
                         var nodeList = data.SelectNodes(match, _namespaceManager);
@@ -948,8 +951,11 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
             return newValue;
 
         }
-        private string[] GetValues(string attr, XmlNode idNode, XmlNode data, ModifierDelegate mod_func = null, int min=0, int max=0)
+
+       private string[] GetValues(string attr, XmlNode idNode, XmlNode data, ModifierDelegate mod_func = null, int min=0, int max=0)
         {
+            //GetValues2(attr, idNode, data, mod_func, min, max);
+
             List<string> toReturn = new List<string>();
 
             var parent = idNode.ParentNode;
@@ -960,8 +966,17 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
             var prefix = idNode.Attributes["prefix"] != null ?  idNode.Attributes["prefix"].Value : "";
 
             //is there an xpath expression?
-            var xpaths = Regex.Matches(value, "{(.*?)}");
-            if (value.Contains("{") && xpaths.Count > 0) 
+            var xpaths1 = Regex.Matches(value, "{(.*?)}");
+
+            var internalFuncCalls = Regex.Matches(value, "\\^(.*?)~");
+            List<Match> xpaths = new List<Match>();
+
+            //We'll add the internalFuncCalls first so their are computed first (really we want to create a parse tree but will mean a v2)
+            xpaths.AddRange(internalFuncCalls.Cast<Match>());
+            xpaths.AddRange(xpaths1.Cast<Match>());
+            
+
+            if (/*value.Contains("{") &&*/ xpaths.Count > 0) 
             {
                 //  if there is more than one xpath to look up in this value,
                 //  object-{obj_id}-{part_id} then we want only one match for
@@ -971,15 +986,31 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                     bool matchedSomething = false;
                     foreach (Match xPath in xpaths)
                     {
+                        /*If we are here then we have the situation of multiple xpath queriers: xxx-{xpath1}xxxx{xpath2}
+                          If so, before we continue, we need to rule out any sub calls to internal functions such as:
+                        {/xpath[{counter_CounterVariable}]}
+                     */
+                        string xPathValue = xPath.Value;
+                        //MatchCollection xpaths2 = Regex.Matches(RemoveClosingBrackets(xPathValue), "\\^(.*?)\\~");
+                        //foreach (Match m in xpaths2)
+                        //{
+                        //    string result2;
+                        //    if (TryInternalFunction(RemoveClosingBrackets(m.Value), out result2))
+                        //    {
+                        //        xPathValue = xPathValue.Replace(m.Value, result2);
+                        //    }
+                        //}
+                        xPathValue = MatchNestedInternalFunctionCalls(xPathValue);
+
                         string result;
-                        if (TryInternalFunction(RemoveClosingBrackets(xPath.Value), out result))
+                        if (TryInternalFunction(RemoveClosingBrackets(xPathValue), out result))
                         {
-                            value = value.Replace(xPath.Value, result);
+                            value = value.Replace(xPathValue, result);
                         }
                         else
                         {
                             XPathNavigator nav = data.CreateNavigator();
-                            XPathExpression expr = nav.Compile(RemoveClosingBrackets(xPath.Value));
+                            XPathExpression expr = nav.Compile(RemoveClosingBrackets(xPathValue));
                             expr.SetContext(_namespaceManager);
 
                             //XPathNodeIterator iterator = nav.Select(expr);
@@ -994,16 +1025,16 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
 
                                         if (iterator.Current.Value.Trim().Length > 0)
                                             matchedSomething = true;
-                                        value = value.Replace(xPath.Value, iterator.Current.Value);
+                                        value = value.Replace(xPathValue, iterator.Current.Value);
                                     }
                                     else if (xpaths.Count != 1 && iterator.Count == 0)
                                     {
-                                        throw new Exception("No match for " + xPath.Value + " in " + attr + "=\"" +
+                                        throw new Exception("No match for " + xPathValue + " in " + attr + "=\"" +
                                                             value + "\"");
                                     }
                                     else if (xpaths.Count > 1)
                                     {
-                                        throw new Exception("Multiple matches for " + xPath.Value + " in " + attr +
+                                        throw new Exception("Multiple matches for " + xPathValue + " in " + attr +
                                                             "=\"" + value + "\"");
                                     }
                                     break;
@@ -1012,7 +1043,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                                     if (!string.IsNullOrEmpty(st) && st.Trim().Length > 0)
                                     {
                                         matchedSomething = true;
-                                        value = value.Replace(xPath.Value, st);
+                                        value = value.Replace(xPathValue, st);
                                     }
                                     break;
                                 case XPathResultType.Number:
@@ -1023,15 +1054,15 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                                     //if it can be an int, then make it so...
                                     if (int.TryParse(dNumber.ToString(), out iNumber))
                                     {
-                                        value = value.Replace(xPath.Value, iNumber.ToString());
+                                        value = value.Replace(xPathValue, iNumber.ToString());
                                     }
                                     else
                                     {
-                                        value = value.Replace(xPath.Value, dNumber.ToString());
+                                        value = value.Replace(xPathValue, dNumber.ToString());
                                     }
                                     break;
                                 default:
-                                    throw new Exception("No match for " + xPath.Value + " in " + attr + "=\"" + value +
+                                    throw new Exception("No match for " + xPathValue + " in " + attr + "=\"" + value +
                                                         "\"");
                             }
                         }
@@ -1045,6 +1076,22 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
 
                 }
                 else {
+
+                    /*If we are here then we don't have the situation of multiple xpath queriers: xxx-{xpath1}xxxx{xpath2}
+                    Therefore we have just a normal bracketed xpath.  If so, before we continue, we need to rule out any sub calls to internal functions such as:
+                        {/xpath[{counter_CounterVariable}]}
+                     */
+                    //MatchCollection xpaths2 = Regex.Matches(value, "\\^(.*?)~");
+                    //foreach (Match m in xpaths2)
+                    //{
+                    //    string result2;
+                    //    if (TryInternalFunction(RemoveClosingBrackets(m.Value), out result2))
+                    //    {
+                    //        value = value.Replace(m.Value, result2);
+                    //    }
+                    //}
+                    value = MatchNestedInternalFunctionCalls(value);
+
 
                     //  quite happy to enumerate for all values which match the xpath
                     var xpath = RemoveClosingBrackets(value);
@@ -1094,6 +1141,20 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
             return toReturn.ToArray();
         }
 
+        private string MatchNestedInternalFunctionCalls(string xPathValue)
+        {
+            MatchCollection xpaths2 = Regex.Matches(RemoveClosingBrackets(xPathValue), "\\^(.*?)\\~");
+            foreach (Match m in xpaths2)
+            {
+                string result2;
+                if (TryInternalFunction(RemoveClosingBrackets(m.Value), out result2))
+                {
+                    xPathValue = xPathValue.Replace(m.Value, result2);
+                }
+            }
+            return xPathValue;
+        }
+
         /// <summary>
         /// Get an array of child nodes with the given name
         /// </summary>
@@ -1113,9 +1174,9 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
         private string RemoveClosingBrackets(string match) 
         {
             var matchNew = match;
-            if(matchNew.StartsWith("{"))
+            if (matchNew.StartsWith("{") || matchNew.StartsWith("^"))
                 matchNew = matchNew.Remove(0, 1);
-            if(matchNew.EndsWith("}"))
+            if (matchNew.EndsWith("}") || matchNew.EndsWith("~"))
                 matchNew = matchNew.Remove(matchNew.Length - 1, 1);
             return matchNew;
         }
