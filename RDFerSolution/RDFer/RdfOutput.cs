@@ -25,7 +25,8 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
         TriG,
         Turtle,
         NTriples,
-        N3
+        N3,
+        NQuads
     }
     public class RdfOutput : IDisposable
     {
@@ -212,7 +213,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
         public void AddNamedGraphToCurrentNodes(string namedGraphUri)
         {
             //as we're using named graphs now, we must use TRIG format
-            if (this._outputFormat != ERdfFormat.TriG)
+            if (this._outputFormat != ERdfFormat.TriG && this._outputFormat != ERdfFormat.NQuads)
             {
                 this._outputFormat = ERdfFormat.TriG;
                 Console.WriteLine("Format set to TriG as namedgraph has been asserted.");
@@ -279,6 +280,22 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                 var writer = new Notation3Writer();
                 writer.Save(g, filePathForFormat);
             }
+            else if (this._outputFormat == ERdfFormat.NQuads)
+            {
+                string filePathForFormat = GetFilePathBasedOnFormat();
+                var outparams = new StreamParams(filePathForFormat);
+                outparams.Encoding = Encoding.UTF8;
+
+                if (_store == null)
+                {
+                    var g = GetXmlDocumentAsGraph();
+                    _store = new TripleStore();
+                    _store.Add(g, true);
+                }
+                
+                var writer = new NQuadsWriter();
+                writer.Save(_store, outparams);
+            }
 
             //make sure it's not null - can happen if no graphs have yet to be asserted!!
             if (_store != null)
@@ -337,6 +354,9 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                     break;
                 case ERdfFormat.Turtle:
                     extension = ".ttl";
+                    break;
+                case ERdfFormat.NQuads:
+                    extension = ".nq";
                     break;
             }
 

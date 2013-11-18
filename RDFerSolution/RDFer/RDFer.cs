@@ -123,6 +123,9 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                 case "ntriples":
                     eRdfFormat = ERdfFormat.NTriples;
                     break;
+                case "nq":
+                    eRdfFormat = ERdfFormat.NQuads;
+                    break;
             }
             return eRdfFormat;
         }

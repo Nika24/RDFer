@@ -229,7 +229,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
         }
         private static void Usage() 
         {
-            Console.Write("\n\n\t RDFer -c[/c /config] configfile.xml -i[/i /input] inputfile.xml> -o[/o /output]\nOPTIONAL\n\t-f[/f to specify format: rdf,ttl,n3,trig,nt]\n\t-s[/s /split]\n\t-p[/p to pause]\n\t-n[/n output noise]\n\nYou must specify a config file as XML, an input file and a path to where to output the RDF files.\nUse the split flag to initiate the splitting of the XML file.");
+            Console.Write("\n\n\t RDFer -c[/c /config] configfile.xml -i[/i /input] inputfile.xml> -o[/o /output]\nOPTIONAL\n\t-f[/f to specify format: rdf,ttl,n3,trig,nt,nq]\n\t-s[/s /split]\n\t-p[/p to pause]\n\t-n[/n output noise]\n\nYou must specify a config file as XML, an input file and a path to where to output the RDF files.\nUse the split flag to initiate the splitting of the XML file.");
             Environment.Exit(-1);
         }
         private static void Abort(string message) 
