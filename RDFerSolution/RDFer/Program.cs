@@ -280,11 +280,14 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
             
             //input chunks folder - get the folder of the _dataPath
             FileInfo _dataFileInfo = new FileInfo(_dataPath);
-            _inputChunkingFolder = _dataFileInfo.Directory.FullName + "\\" + _inputDirectoryName;
+
+            //_inputChunkingFolder =  _dataFileInfo.Directory.FullName + "\\" + _inputDirectoryName;
+            _inputChunkingFolder = Path.Combine(_dataFileInfo.Directory.FullName, _inputDirectoryName);
+
             Directory.CreateDirectory(_inputChunkingFolder);
 
             //rdf output chunks folder - get the folder of the _outputPath
-            _outputChunkingFolder = _outputPath + "\\" + _outputDirectoryName;
+            _outputChunkingFolder = Path.Combine(_outputPath, _outputDirectoryName);
             Directory.CreateDirectory(_outputChunkingFolder);
         }
     }
