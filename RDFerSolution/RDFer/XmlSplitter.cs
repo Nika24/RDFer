@@ -101,7 +101,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                     _outputBuilder.Append(footer);
             }
 
-            string splitFileName = _outputFolder + "\\" + outputFileName + "_" + splitCount.ToString() + ".xml";
+            string splitFileName = Path.Combine(_outputFolder, outputFileName + "_" + splitCount.ToString() + ".xml");
 
             //output
             writer = new StreamWriter(splitFileName);
