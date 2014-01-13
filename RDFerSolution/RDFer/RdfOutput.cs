@@ -236,6 +236,9 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
 
         public void Dispose()
         {
+            //Create all of the directories required for the file
+            new FileInfo(_outputPath).Directory.Create();
+
             if (this._outputFormat == ERdfFormat.RdfXml)
             {
                 using (XmlTextWriter xmlWriter = new XmlTextWriter(_outputPath, new UTF8Encoding(false))) //Set encoding
