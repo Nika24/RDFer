@@ -684,6 +684,11 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
         {
             try
             {
+                if (triple.Attributes["object"] != null &&
+                    triple.Attributes["object"].Value == "{mus_inscription_language}")
+                {
+                    Console.WriteLine("GOT IT!");
+                }
                 //  if no predicate then abort!
                 if (triple.Attributes["predicate"] == null)
                     throw new Exception("Error in config: Missing predicate=\"...\" attribute in <triple>");
@@ -923,34 +928,37 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                 }
             }
         }
-        private string SanitiseUri(string value) 
+        private string SanitiseUri(string value)
         {
-            //  delete these characters
-            string newValue = value.Replace("<", "").Replace(">","");
-
-            //  replace anything else wacky with a -
-            newValue = Regex.Replace(newValue,"[^a-zA-Z0-9_#\\-/:\\.]","-");
-
-            //  remove leading, ending or double hyphens
-            while (newValue.Contains("--"))
+            string newValue = value;
+            if (!VDS.RDF.Parsing.IriSpecsHelper.IsAbsoluteIri(newValue))
             {
-                newValue = newValue.Replace("--", "-");
+                //  delete these characters
+                newValue = value.Replace("<", "").Replace(">", "");
+
+                //  replace anything else wacky with a -
+                newValue = Regex.Replace(newValue, "[^a-zA-Z0-9_#\\-/:\\.]", "-");
+
+                //  remove leading, ending or double hyphens
+                while (newValue.Contains("--"))
+                {
+                    newValue = newValue.Replace("--", "-");
+                }
+
+                if (newValue.StartsWith("-"))
+                    newValue = newValue.Substring(1);
+                if (newValue.EndsWith("-"))
+                    newValue = newValue.Substring(0, newValue.Length - 1);
+
+                //  remove double slashes, presuming not preceeded by http:
+                newValue = Regex.Replace(newValue, "([^:])//", "\\1/");
+
+                //  if there is a trailing slash remove it, unless just http://domain.com/
+                //  ie greater than three /
+
+                if (newValue.EndsWith("/") && CountStringOccurrences(newValue, "/") > 3)
+                    newValue = newValue.Substring(0, newValue.Length - 1);
             }
-
-            if(newValue.StartsWith("-"))
-                newValue = newValue.Substring(1);
-            if(newValue.EndsWith("-"))
-                newValue = newValue.Substring(0,newValue.Length -1);
-
-            //  remove double slashes, presuming not preceeded by http:
-            newValue = Regex.Replace(newValue,"([^:])//","\\1/");
-
-            //  if there is a trailing slash remove it, unless just http://domain.com/
-            //  ie greater than three /
-
-            if (newValue.EndsWith("/") && CountStringOccurrences(newValue, "/") > 3)
-                newValue = newValue.Substring(0, newValue.Length - 1);
-
             return newValue;
 
         }
