@@ -236,12 +236,15 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
 
         public void Dispose()
         {
+            
             //Create all of the directories required for the file
-            new FileInfo(_outputPath).Directory.Create();
+            var f = new FileInfo(_outputPath);
+            f.Directory.Create();
 
             if (this._outputFormat == ERdfFormat.RdfXml)
             {
-                using (XmlTextWriter xmlWriter = new XmlTextWriter(_outputPath, new UTF8Encoding(false))) //Set encoding
+                using (XmlTextWriter xmlWriter = new XmlTextWriter(_outputPath, new UTF8Encoding(false)))
+                    //Set encoding
                 {
                     _output.Save(xmlWriter);
                 }
@@ -295,7 +298,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                     _store = new TripleStore();
                     _store.Add(g, true);
                 }
-                
+
                 var writer = new NQuadsWriter();
                 writer.Save(_store, outparams);
             }

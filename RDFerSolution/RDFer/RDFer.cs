@@ -684,11 +684,6 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
         {
             try
             {
-                if (triple.Attributes["object"] != null &&
-                    triple.Attributes["object"].Value == "{mus_inscription_language}")
-                {
-                    Console.WriteLine("GOT IT!");
-                }
                 //  if no predicate then abort!
                 if (triple.Attributes["predicate"] == null)
                     throw new Exception("Error in config: Missing predicate=\"...\" attribute in <triple>");

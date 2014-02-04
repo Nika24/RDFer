@@ -90,9 +90,7 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
                     //string[] splitFiles = ;
                     foreach (string split in Directory.GetFiles(_inputChunkingFolder)) 
                     {
-                        if (_noisy)
-                            Console.WriteLine("RDFing: " + split);
-
+                        Console.WriteLine("RDFing: " + split);
                         var rdfER = new RDFer(split, _configPath, _outputChunkingFolder, _includeStackTrackInOutput, _format);
                         rdfER.Start();
                         rdfER.Dispose();
