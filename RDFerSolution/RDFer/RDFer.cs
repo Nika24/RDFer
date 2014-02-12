@@ -1180,10 +1180,11 @@ namespace JoshanMahmud.SemanticWeb.RdfConversion
         private string RemoveClosingBrackets(string match) 
         {
             var matchNew = match;
-            if (matchNew.StartsWith("{") || matchNew.StartsWith("^"))
+            if ((matchNew.StartsWith("{") && matchNew.EndsWith("}")) || (matchNew.StartsWith("^") && matchNew.EndsWith("~")))
+            {
                 matchNew = matchNew.Remove(0, 1);
-            if (matchNew.EndsWith("}") || matchNew.EndsWith("~"))
                 matchNew = matchNew.Remove(matchNew.Length - 1, 1);
+            }
             return matchNew;
         }
 
